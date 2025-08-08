@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot for FAQs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f3f4f6; /* gray-100 */
+            --bg-chat-widget: #ffffff; /* white */
+            --bg-chat-container: #f9fafb; /* gray-50 */
+            --bg-header: linear-gradient(to right, #2563eb, #4f46e5); /* blue-600 to indigo-700 */
+            --bg-user-msg: #4f46e5; /* indigo-600 */
+            --text-user-msg: #ffffff;
+            --bg-bot-msg: #e0e7ff; /* indigo-100 */
+            --text-bot-msg: #1e1b4b; /* indigo-900 */
+            --bg-input: #f3f4f6; /* gray-100 */
+            --text-input: #374151; /* gray-700 */
+            --text-header: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        html.dark {
+            --bg-body: #111827; /* gray-900 */
+            --bg-chat-widget: #1f2937; /* gray-800 */
+            --bg-chat-container: #374151; /* gray-700 */
+            --bg-header: linear-gradient(to right, #1f2937, #111827); /* gray-800 to gray-900 */
+            --bg-user-msg: #4f46e5; /* indigo-600 */
+            --text-user-msg: #ffffff;
+            --bg-bot-msg: #374151; /* gray-700 */
+            --text-bot-msg: #e5e7eb; /* gray-200 */
+            --bg-input: #4b5563; /* gray-600 */
+            --text-input: #f9fafb; /* gray-50 */
+            --text-header: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            transition: background-color 0.3s ease;
+            background-image: url('https://images.unsplash.com/photo-1519764326835-b2a61320478b?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        /* Overlay to ensure text readability over the background image */
+        .bg-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        html.dark .bg-overlay {
+             background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        #chat-widget {
+            background-color: var(--bg-chat-widget);
+            box-shadow: 0 20px 25px -5px var(--shadow-color), 0 10px 10px -5px var(--shadow-color);
+        }
+        #chat-header { background: var(--bg-header); }
+        #chat-container { background-color: var(--bg-chat-container); }
+        #user-input-wrapper { background-color: var(--bg-input); }
+        #user-input { color: var(--text-input); }
+        .user-message { background-color: var(--bg-user-msg); color: var(--text-user-msg); }
+        .bot-message { background-color: var(--bg-bot-msg); }
+        .bot-message .bot-name { color: var(--text-bot-msg); font-weight: 600; }
+        .bot-message .bot-text { color: var(--text-bot-msg); }
+        
+        /* Custom scrollbar */
+        #chat-container::-webkit-scrollbar { width: 6px; }
+        #chat-container::-webkit-scrollbar-track { background: transparent; }
+        #chat-container::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+        html.dark #chat-container::-webkit-scrollbar-thumb { background: #555; }
+
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .typing-indicator span { height: 8px; width: 8px; background-color: #9E9EA1; border-radius: 50%; display: inline-block; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen bg-overlay">
+
+    <div id="chat-widget" class="w-full max-w-2xl h-full sm:h-auto sm:max-h-[700px] flex flex-col rounded-lg transition-colors duration-300">
+        <!-- Header -->
+        <div id="chat-header" class="text-white p-4 flex items-center justify-between rounded-t-lg shadow-md">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-4">
+                     <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">AI Chatbot for FAQs</h1>
+                    <p class="text-sm opacity-90">I'm here to help with your questions!</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                 <button id="theme-toggle" class="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white" title="Toggle Theme">
+                    <svg id="theme-icon-sun" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 12a5 5 0 100-10 5 5 0 000 10z"></path></svg>
+                    <svg id="theme-icon-moon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+                <button id="clear-chat" class="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white" title="Clear Chat">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chat-container" class="flex-1 p-6 overflow-y-auto">
+            <!-- Initial welcome message -->
+            <div class="flex items-start gap-3 mb-4 fade-in">
+                <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg>
+                </div>
+                <div class="bot-message p-3 rounded-lg max-w-md">
+                    <p class="bot-name">AI Assistant</p>
+                    <p class="bot-text">Hello! Ask me anything about our products or services.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-200/10">
+            <div id="user-input-wrapper" class="flex items-center rounded-full p-2 transition-colors duration-300">
+                <input type="text" id="user-input" placeholder="Ask me anything..." class="flex-1 bg-transparent px-4 py-2 focus:outline-none">
+                <button id="send-btn" class="bg-indigo-600 text-white rounded-full p-3 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data & NLP (Unchanged) ---
+        const faqs = [
+            { question: "What is your return policy?", answer: "You can return any item within 30 days of purchase for a full refund. The item must be in its original condition with all tags attached." },
+            { question: "How do I track my order?", answer: "Once your order has shipped, you will receive an email with a tracking number. You can use this number on the carrier's website to track your package." },
+            { question: "Do you offer international shipping?", answer: "Yes, we ship to most countries worldwide. Shipping costs and delivery times vary. Please check our shipping page for more details." },
+            { question: "What payment methods do you accept?", answer: "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and Apple Pay." },
+            { question: "How can I contact customer support?", answer: "Our customer support team is available 24/7. You can reach us via email at support@example.com, or by calling our toll-free number at 1-800-555-1234." }
+        ];
+        const stopWords = new Set(['a', 'about', 'an', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'how', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'who', 'will', 'with', 'i', 'you', 'your']);
+        function tokenizeAndClean(text) { if (!text) return []; return text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word && !stopWords.has(word)); }
+        function createVector(tokens) { const vector = new Map(); tokens.forEach(token => vector.set(token, (vector.get(token) || 0) + 1)); return vector; }
+        function cosineSimilarity(vec1, vec2) { const allTokens = new Set([...vec1.keys(), ...vec2.keys()]); let dotProduct = 0, mag1 = 0, mag2 = 0; allTokens.forEach(token => { const val1 = vec1.get(token) || 0; const val2 = vec2.get(token) || 0; dotProduct += val1 * val2; mag1 += val1 * val1; mag2 += val2 * val2; }); const magnitude = Math.sqrt(mag1) * Math.sqrt(mag2); return magnitude === 0 ? 0 : dotProduct / magnitude; }
+        const processedFaqs = faqs.map(faq => ({ ...faq, tokens: tokenizeAndClean(faq.question), vector: createVector(tokenizeAndClean(faq.question)) }));
+        function findBestFaqMatch(userQuestion) { const userTokens = tokenizeAndClean(userQuestion); if (userTokens.length === 0) return { answer: null, score: 0 }; const userVector = createVector(userTokens); let bestMatch = { answer: null, score: 0 }; processedFaqs.forEach(faq => { const score = cosineSimilarity(userVector, faq.vector); if (score > bestMatch.score) { bestMatch = { answer: faq.answer, score: score }; } }); return bestMatch; }
+        
+        // --- Gemini AI Integration (Unchanged) ---
+        async function getGeminiResponse(prompt) {
+            const apiKey = "AIzaSyAcMjOAvejSE5K9zNvlQgbthfw5PTXBnGE"; // IMPORTANT: Add your Gemini API Key here
+            if (!apiKey) {
+                console.error("API Key for Gemini is missing.");
+                return "I'm sorry, my AI brain is not configured correctly. Please contact support. (API Key is missing).";
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: `You are a friendly and helpful customer support chatbot. Answer the following question concisely: "${prompt}"` }] }] };
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    return "I'm sorry, I couldn't generate a response at the moment. Please try again later.";
+                }
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                return "I'm having trouble connecting to my AI brain. Please check your connection or try again.";
+            }
+        }
+
+        // --- UI Interaction & Theme Logic ---
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const clearChatBtn = document.getElementById('clear-chat');
+        const themeToggle = document.getElementById('theme-toggle');
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function appendMessage(message, sender, isAI = false) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'items-start', 'gap-3', 'mb-4', 'fade-in');
+            if (sender === 'user') {
+                messageWrapper.classList.add('justify-end');
+                messageWrapper.innerHTML = `<div class="user-message p-3 rounded-lg max-w-md"><p>${message}</p></div><div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>`;
+            } else {
+                const aiBadge = isAI ? `<p class="text-xs text-indigo-400 font-semibold mt-2">✨ Powered by AI</p>` : '';
+                messageWrapper.innerHTML = `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg></div><div class="bot-message p-3 rounded-lg max-w-md"><p class="bot-name">AI Assistant</p><p class="bot-text">${message}</p>${aiBadge}</div>`;
+            }
+            chatContainer.appendChild(messageWrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'typing-indicator';
+            typingIndicator.classList.add('flex', 'items-start', 'gap-3', 'mb-4');
+            typingIndicator.innerHTML = `<div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg></div><div class="bot-message p-3 rounded-lg"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+            chatContainer.appendChild(typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        function removeTypingIndicator() { const indicator = document.getElementById('typing-indicator'); if (indicator) indicator.remove(); }
+
+        async function handleSendMessage() {
+            const question = userInput.value.trim();
+            if (!question) return;
+            appendMessage(question, 'user');
+            userInput.value = '';
+            showTypingIndicator();
+            const faqMatch = findBestFaqMatch(question);
+            const CONFIDENCE_THRESHOLD = 0.6;
+            let answer; let isAI = false;
+            if (faqMatch.score >= CONFIDENCE_THRESHOLD) {
+                answer = faqMatch.answer; isAI = false;
+                setTimeout(() => { removeTypingIndicator(); appendMessage(answer, 'bot', isAI); }, 500);
+            } else {
+                answer = await getGeminiResponse(question); isAI = true;
+                removeTypingIndicator(); appendMessage(answer, 'bot', isAI);
+            }
+        }
+
+        // --- Event Listeners ---
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        clearChatBtn.addEventListener('click', () => {
+            chatContainer.innerHTML = ''; // Clear all messages
+            appendMessage("Hello! Ask me anything about our products or services.", 'bot');
+        });
+
+        // --- NEW: Theme Toggle Logic ---
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        // Apply saved theme on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+
+    </script>
+</body>
+</html>
